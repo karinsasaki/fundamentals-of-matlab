@@ -144,38 +144,38 @@ toc
 
 % 1. 
 
-% function [y] = vector_sum(x)
-% 
-% % This program takes in a vector x and returns a scalar y that is the sum
-% % of all the entries of x
-% 
-% y = sum(x)
-% 
-% end
+function [y] = vector_sum(x)
+
+% This program takes in a vector x and returns a scalar y that is the sum
+% of all the entries of x
+
+y = sum(x)
+
+end
 
 
 % 2. 
 
-% function [max_values, values_indices] = vect_cols_max(W)
-% % vect_cols_max takes in a vector v and returns the largest elements of each column
-% % of v and their position in v
-% 
-% [sort_v, sort_indices] = sort(W);
-% 
-% max_values = sort_v(3,:);
-% values_indices = sort_indices(3,:);
+function [max_values, values_indices] = vect_cols_max(W)
+% vect_cols_max takes in a vector v and returns the largest elements of each column
+% of v and their position in v
+
+[sort_v, sort_indices] = sort(W);
+
+max_values = sort_v(3,:);
+values_indices = sort_indices(3,:);
 
 
 %% 4.2
 
 
-% function [area, circumference, diameter] = calc_circle(radius)
-% 
-% area = pi*radius^2;
-% 
-% circumference = 2*pi*radius;
-% 
-% diameter = 2*radius;
+function [area, circumference, diameter] = calc_circle(radius)
+
+area = pi*radius^2;
+
+circumference = 2*pi*radius;
+
+diameter = 2*radius;
 
 
 %% 4.3
@@ -206,19 +206,16 @@ for j = 1:M
 	end
 end
 
-%% 4.4
-
 
 %% 6.1
 
-% 1. 
+% 2. 
 % For the lipo-protein interactions:
 xlRange = 'B2:X96';
 filename = 'protein_lipid_interaction.xlsx';
 lpMAT = xlsread(filename, xlRange);
 
 
-% 1. 
 % Learn this from http://uk.mathworks.com/help/matlab/import_export/supported-file-formats.html
 
 load('./actin.mat')
@@ -284,17 +281,162 @@ end
 
 
 %% 8.1
+% -------------------------
+% Decay
+% -------------------------
 
+    % -------------------------
+    % function
+    % -------------------------
+ 
+function dAdt = decay_odes(t, A,k) 
+
+dAdt = -k*A; 
+    
+    % -------------------------
+    % script
+    % -------------------------
+    
+% initial concentration
+y0 = 100;
+
+% time of simulation
+tspan = [0:1:100];
+
+% reation constant
+k = 0.01;
+
+% solve system of ODEs describing decay A -> B
+[Tode, Yode] = ode45(@decay_odes, tspan, y0,[],k); 
+
+figure
+hold on
+plot (Tode, Yode, '--')    
+xlabel('Time');
+ylabel('Concentration');
+
+
+% -------------------------
+% Equlibrium
+% -------------------------
+
+    % -------------------------
+    % function
+    % -------------------------
+    
+function dydt = reversible_odes(T,Y)
+
+stoch = [-1 1; 1 -1];
+rates = [0.1; 0.05];
+reactants = [Y(1); Y(2)];
+dydt = stoch * ((rates).*(reactants));    
+    
+    % -------------------------
+    % script
+    % -------------------------
+    
+y0 = [1 0];
+
+t = 0:100;
+
+rates = [0.1; 0.05];
+
+[Tode Yode] = ode45(@reversible_odes, t, y0, [], rates); 
+
+%plot solution of reversible system
+figure, plot (Tode, Yode); 
+legend ('[A]', '[B]'); 
+legend('A', 'B')
+xlabel('Time');
+ylabel('Concentration');
+%savefig('reversible_reaction_ode');
+
+% -------------------------
+% Enzymatic reaction
+% -------------------------
+
+    % -------------------------
+    % function
+    % -------------------------
+% ode for 
+% E + S <-> ES with rate kf and kr
+% ES -> P + E with rate k
+
+function dydt = enzyme_reaction_odes(T,Y,rates)
+
+stoch = [-1 +1 0; -1 +1 1; +1 -1 -1; 0 0 +1];
+
+substrates = [Y(1)*Y(2); Y(3); Y(3)];  
+
+dydt = stoch*(rates.*substrates);
+    
+    
+    % -------------------------
+    % script
+    % -------------------------
+
+y0 = [20 10 0 0];
+
+t = 0:100;
+
+rates = [0.01; 0.001; 0.01];
+
+[Tode Yode] = ode45(@enzyme_reaction_odes, t, y0, [], rates); 
+
+%plot solution of reversible system
+figure, plot (Tode, Yode); 
+legend ('[S]', '[E]', '[SE]', '[P]'); 
+xlabel('Time');
+ylabel('Concentration');
+
+
+% -------------------------
+% Gene expression
+% -------------------------
+
+    % -------------------------
+    % function
+    % -------------------------
+    
+    
+    % -------------------------
+    % script
+    % -------------------------
+
+% -------------------------
+% Gene regulation
+% -------------------------
+
+    % -------------------------
+    % function
+    % -------------------------
+    
+    
+    % -------------------------
+    % script
+    % -------------------------
+
+% -------------------------
+% Challenges
+% -------------------------
+
+    % -------------------------
+    % function
+    % -------------------------
+    
+    
+    % -------------------------
+    % script
+    % -------------------------
 
 %% 8.2
-
 
 %close all
 %clear
 %clc
 
 % import image into MATLAB
-im = imread('image.png');
+im = imread('segment_cells.png');
 
 % im has 3 dimensions. so reduce to 1
 im = im(:,:,1);
@@ -339,7 +481,7 @@ figure
 imshow(im_bw_perim)
 
 % perimeter overlay
-overlay1 = imoverlay(im_eq, bw4_perim, [.3 1 .3]);
+overlay1 = imoverlay(im_eq, im_bw4_perim, [.3 1 .3]);
 figure
 imshow(overlay1)
 
