@@ -246,38 +246,35 @@ figure(3), stem(x(1:11), lpMAT(:,13:23)')
 % contractile network
 %--------------------
 
-figure
-hold on
-for i = 1:500
 
-    % extract rows of ActinMAT for which
-    % row 1 is equal to 1
-    fiber_location = find(ActinMAT(:,1)==i);
+function [actin_filaments] = actin_trajectories(actinMAT)
+
+actin_filaments(500).id = [];
+actin_filaments(500).point = 0;
+actin_filaments(500).coordinates = [];
+actin_filaments(500).distance = [];
+
+figure
+hold on 
+for i = 1:500
+    % pick point 0 for every frame for filament 1
+    filament1_row_ids = find(actinMAT(:,2)==0 & actinMAT(:,1)==i);
+    filament1 = actinMAT(filament1_row_ids,:);
+    dist = sqrt(filament1(:,3).^2 + filament1(:,4).^2);
     
-    % create a new array that stores the
-    % same information as ActinMAT, but only
-    % for fiber 1
-    fiber=ActinMAT(fiber_location,:);
+    % save info
+    actin_filaments(i).id = i;
+    actin_filaments(i).point = 0;
+    actin_filaments(i).coordinates = filament1(:,3:4);
+    actin_filaments(i).distance = dist;
     
-    % extract the locations in |fiber1| that
-    % store only point 0. Hint: use column 2
-    % get the distance
-    fiber_pt0_location = find(fiber(:,2)==0);
-    
-    % create a new array that stores the
-    % same information as fiber1, but only
-    % for point 0
-    fiber_pt0 = fiber(fiber_pt0_location,:);
-    
-    % get distance
-    x = fiber_pt0(:,3);
-    y = fiber_pt0(:,4);
-    fiber_pt0_distance = sqrt(x.^2+y.^2);
-    
+    % define time
+    time = 1:length(filament1_row_ids);
+
     % plot
-    t = 1:9;
-    plot(t,fiber_pt0_distance);
+    plot(time, dist)
 end
+hold off
 
 
 %% 8.1
