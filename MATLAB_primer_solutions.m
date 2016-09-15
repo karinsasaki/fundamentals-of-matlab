@@ -286,7 +286,7 @@ hold off
     % function
     % -------------------------
  
-function dAdt = decay_odes(t, A,k) 
+function dAdt = decay_odes(t, A, k) 
 
 dAdt = -k*A; 
     
@@ -295,7 +295,7 @@ dAdt = -k*A;
     % -------------------------
     
 % initial concentration
-y0 = 100;
+A0 = 100;
 
 % time of simulation
 tspan = [0:1:100];
@@ -304,7 +304,7 @@ tspan = [0:1:100];
 k = 0.01;
 
 % solve system of ODEs describing decay A -> B
-[Tode, Yode] = ode45(@decay_odes, tspan, y0,[],k); 
+[Tode, Yode] = ode45(@decay_odes, tspan, A0,[],k); 
 
 figure
 hold on
@@ -321,29 +321,27 @@ ylabel('Concentration');
     % function
     % -------------------------
     
-function dydt = reversible_odes(T,Y)
+function dydt = reversible_odes(T,Y,rates)
 
 stoch = [-1 1; 1 -1];
-rates = [0.1; 0.05];
-reactants = [Y(1); Y(2)];
-dydt = stoch * ((rates).*(reactants));    
+substrates = [Y(1); Y(2)];
+dydt = stoch * ((rates).*(substrates));    
     
     % -------------------------
     % script
     % -------------------------
     
-y0 = [1 0];
+Y0 = [1 0];
 
 t = 0:100;
 
 rates = [0.1; 0.05];
 
-[Tode Yode] = ode45(@reversible_odes, t, y0, [], rates); 
+[Tode Yode] = ode45(@reversible_odes, t, Y0, [], rates); 
 
 %plot solution of reversible system
 figure, plot (Tode, Yode); 
 legend ('[A]', '[B]'); 
-legend('A', 'B')
 xlabel('Time');
 ylabel('Concentration');
 %savefig('reversible_reaction_ode');
@@ -372,13 +370,13 @@ dydt = stoch*(rates.*substrates);
     % script
     % -------------------------
 
-y0 = [20 10 0 0];
+Y0 = [20 10 0 0];
 
 t = 0:100;
 
 rates = [0.01; 0.001; 0.01];
 
-[Tode Yode] = ode45(@enzyme_reaction_odes, t, y0, [], rates); 
+[Tode Yode] = ode45(@enzyme_reaction_odes, t, Y0, [], rates); 
 
 %plot solution of reversible system
 figure, plot (Tode, Yode); 
@@ -433,31 +431,55 @@ ylabel('Concentration');
 %clc
 
 % import image into MATLAB
-im = imread('segment_cells.png');
+im = imread('cells.png');
 
-% im has 3 dimensions. so reduce to 1
+% im has 3 dimensions. so reduce to 1 channel
 im = im(:,:,1);
 
 % cropp image and assing to a new variable
-im_cropped = im(1:300,300:end);
+%im_cropped = im(1:300,300:end);
 
 % visualise the images
-figure  % creates a new figure window
-imshow(im_cropped)
+%figure  % creates a new figure window
+%imshow(im_cropped)
 
-figure % creates a new figure window
+figure(1) % creates a new figure window
 imshow(im)
+
+%------------------------------------------------------------
+% modifications on im_eq (image with adjusted contrast)
 
 % increase the contrast for better visualisation
 im_eq = adapthisteq(im);
 
-figure
+figure(2)
 imshow(im_eq)
+
+% mark a group of connected pixels inside objects that need to be segmented
+im_mask_em = imextendedmax(im_eq, 15);
+
+figure(3)
+imshow(im_mask_em)
+
+% clean up and overlay
+im_mask_em_clean = imclose(im_mask_em, ones(5,5));
+im_mask_em_clean = imfill(im_mask_em, 'holes');
+im_mask_em_clean = bwareaopen(im_mask_em, 40);
+figure(4)
+imshow(im_mask_em_clean)
+%im_overlay2 = imoverlay(im_eq, im_bw4_perim | im_mask_em_clean, [.3 1 .3]);
+%imshow(im_overlay2)
+
+
+
+
+%------------------------------------------------------------
+% modifications on im_bw4 (black and white image)
 
 % change image to binary (or balck and white)
 im_bw = im2bw(im_eq, graythresh(im_eq));
 
-figure
+figure(5)
 imshow(im_bw)
 
 
@@ -465,38 +487,43 @@ imshow(im_bw)
 im_bw2 = imfill(im_bw,'holes');
 im_bw3 = imopen(im_bw2, ones(1,1));
 im_bw4 = bwareaopen(im_bw3, 5);
-figure 
+figure(6)
 imshow(im_bw4)
+
+%------------------------------------------------------------
+% modifications on im_bw4_perim (black and white image of the perimeters of cells)
 
 % cell perimeter
 im_bw4_perim = bwperim(im_bw4);
-figure
+figure(7)
 imshow(im_bw4_perim)
 
-im_bw_perim = bwperim(im_bw);
-figure
-imshow(im_bw_perim)
 
-% perimeter overlay
-overlay1 = imoverlay(im_eq, im_bw4_perim, [.3 1 .3]);
-figure
-imshow(overlay1)
+%------------------------------------------------------------
+% watershed
 
-% mark a group of connected pixels inside objects that need to be segmented
-im_mask_em = imextendedmax(im_eq, 15);
-figure
-imshow(im_mask_em)
-
-% clean up and overlay
-im_mask_em_clean = imclose(im_mask_em, ones(5,5));
-im_mask_em_clean = imfill(im_mask_em, 'holes');
-im_mask_em_clean = bwareaopen(im_mask_em, 40);
-im_overlay2 = imoverlay(im_eq, im_bw4_perim | im_mask_em_clean, [.3 1 .3]);
-imshow(im_overlay2)
-
-% complement image (0->1 and 1->0) for watershedding
+% complement original, cropped, contrast adjusted image (0->1 and 1->0) for watershedding
 im_eq_c = imcomplement(im_eq);
+figure(8)
+imshow(im_eq_c)
 
 im_mod = imimposemin(im_eq_c, ~im_bw4 | im_mask_em_clean);
+
+% visualise to facilitate understanding of this step
+figure(9)
+imshow(im_bw4)
+figure(10)
+imshow(~im_bw4)
+figure(11)
+imshow(im_mask_em_clean)
+figure(12)
+imshow(im_bw4 | im_mask_em_clean)
+figure(13)
+imshow(im_mod)
+
+
 L = watershed(im_mod);
+figure(14)
+imshow(L)
+figure(15)
 imshow(label2rgb(L))
